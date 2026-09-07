@@ -3,6 +3,8 @@
 import { useActionState, useEffect, useMemo, useState } from "react";
 import { borrarImagen, guardarCambios, subirImagen } from "./acciones";
 import { ADMIN_INICIAL, type EstadoAdmin } from "./tipos";
+import Recorte from "./Recorte";
+import { proporcionDe } from "@/lib/capturas";
 import {
   CLAVES,
   GRUPOS,
@@ -1017,15 +1019,22 @@ function FormularioImagen({
 
   return (
     <Tarjeta titulo={img.etiqueta}>
+      {/* La vista previa usa la proporción REAL del hueco, no una altura
+          fija: enseñar la foto en una caja que no es la del sitio es
+          justo lo que hacía falta corregir a ciegas con el encuadre. */}
       {img.src ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={img.src}
           alt=""
-          className="h-48 w-full rounded-xl border border-line-2 object-cover"
+          style={{ aspectRatio: proporcionDe(img.clave) }}
+          className="max-h-72 w-full rounded-xl border border-line-2 object-cover"
         />
       ) : (
-        <div className="grid h-48 w-full place-items-center rounded-xl border border-dashed border-line-2 text-[0.8125rem] text-ink-500">
+        <div
+          style={{ aspectRatio: proporcionDe(img.clave) }}
+          className="grid max-h-72 w-full place-items-center rounded-xl border border-dashed border-line-2 text-[0.8125rem] text-ink-500"
+        >
           Sin imagen
         </div>
       )}
@@ -1039,18 +1048,7 @@ function FormularioImagen({
 
       <form action={accion} className="space-y-4">
         <input type="hidden" name="clave" value={img.clave} />
-        <div>
-          <label className="label-mono mb-2 block">Reemplazar archivo</label>
-          <input
-            type="file"
-            name="archivo"
-            accept="image/jpeg,image/png,image/webp,image/avif"
-            className="w-full text-[0.8125rem] text-ink-300 file:mr-3 file:rounded-full file:border-0 file:bg-accent file:px-4 file:py-2 file:text-[0.8125rem] file:text-accent-contra"
-          />
-          <p className="mt-1.5 text-[0.75rem] text-ink-500">
-            JPG, PNG, WebP o AVIF. Máximo 4 MB. Déjalo vacío para cambiar sólo los textos.
-          </p>
-        </div>
+        <Recorte nombre="archivo" clave={img.clave} proporcion={proporcionDe(img.clave)} />
         <Campo etiqueta="Texto alternativo" valor={img.alt} onChange={() => {}} />
         <input type="hidden" name="alt" defaultValue={img.alt} />
         <div className="grid grid-cols-[1fr_9rem] gap-3">

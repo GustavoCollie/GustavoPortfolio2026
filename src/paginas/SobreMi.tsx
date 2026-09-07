@@ -1,3 +1,4 @@
+import { PROPORCIONES } from "@/lib/capturas";
 import Image from "next/image";
 import Link from "next/link";
 import { ruta, type Idioma } from "@/data/idioma";
@@ -48,7 +49,10 @@ export default async function SobreMi({ idioma }: { idioma: Idioma }) {
       <section className="shell grid gap-12 border-t border-line py-16 md:grid-cols-[0.9fr_1.1fr] md:gap-16 md:py-24">
         <Reveal>
           <figure className="m-0">
-            <div className="relative aspect-[4/5] overflow-hidden">
+            <div
+              style={{ aspectRatio: PROPORCIONES.retrato }}
+              className="relative overflow-hidden"
+            >
               <Image
                 src={imagenes.retrato.src}
                 alt={imagenes.retrato.alt}

@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { motion } from "motion/react";
 import type { Proyecto } from "@/data/content";
+import { PROPORCIONES } from "@/lib/capturas";
 
 /**
  * ─────────────────────────────────────────────────────────────
@@ -116,7 +117,10 @@ function Composicion({
             ))}
             <div className="ml-3 h-1.5 flex-1 rounded-full bg-white/[0.07]" />
           </div>
-          <div className="relative aspect-[16/10] w-full">
+          <div
+            style={{ aspectRatio: PROPORCIONES.web }}
+            className="relative w-full"
+          >
             <Image
               src={capturas.web}
               alt={`${nombre} en escritorio`}
@@ -133,7 +137,10 @@ function Composicion({
           recorta a esa forma venga como venga. */}
       {capturas.movil && (
         <div className="absolute bottom-[6%] left-[5%] z-10 w-[17%] min-w-[68px] overflow-hidden rounded-[0.9rem] border border-white/15 bg-[#0f0f0e] p-[3px] shadow-[0_24px_50px_-12px_rgba(0,0,0,0.9)]">
-          <div className="relative aspect-[9/19.5] w-full overflow-hidden rounded-[0.7rem]">
+          <div
+            style={{ aspectRatio: PROPORCIONES.movil }}
+            className="relative w-full overflow-hidden rounded-[0.7rem]"
+          >
             <Image
               src={capturas.movil}
               alt={`${nombre} en móvil`}

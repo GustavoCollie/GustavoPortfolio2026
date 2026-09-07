@@ -1,3 +1,4 @@
+import { PROPORCIONES } from "@/lib/capturas";
 import Image from "next/image";
 import Link from "next/link";
 import { ruta, type Idioma } from "@/data/idioma";
@@ -131,7 +132,10 @@ export default async function Cv({ idioma }: { idioma: Idioma }) {
           </div>
 
           <figure className="cv-bloque m-0 w-40 shrink-0 sm:w-44">
-            <div className="relative aspect-[4/5] overflow-hidden">
+            <div
+              style={{ aspectRatio: PROPORCIONES.retrato }}
+              className="relative overflow-hidden"
+            >
               <Image
                 src={imagenes.retrato.src}
                 alt={imagenes.retrato.alt}
