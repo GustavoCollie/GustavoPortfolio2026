@@ -1021,23 +1021,37 @@ function FormularioImagen({
     <Tarjeta titulo={img.etiqueta}>
       {/* La vista previa usa la proporción REAL del hueco, no una altura
           fija: enseñar la foto en una caja que no es la del sitio es
-          justo lo que hacía falta corregir a ciegas con el encuadre. */}
-      {img.src ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={img.src}
-          alt=""
-          style={{ aspectRatio: proporcionDe(img.clave) }}
-          className="max-h-72 w-full rounded-xl border border-line-2 object-cover"
-        />
-      ) : (
-        <div
-          style={{ aspectRatio: proporcionDe(img.clave) }}
-          className="grid max-h-72 w-full place-items-center rounded-xl border border-dashed border-line-2 text-[0.8125rem] text-ink-500"
-        >
-          Sin imagen
-        </div>
-      )}
+          justo lo que hacía falta corregir a ciegas con el encuadre.
+
+          El tope va en el ANCHO y no en el alto. Con `max-height` la
+          altura ganaba a la proporción y todas las cajas salían con la
+          misma forma —que es exactamente el problema que esto viene a
+          resolver—. Limitando el ancho a alto×proporción, la caja nunca
+          pasa de 20rem de alta y la forma siempre se respeta. */}
+      {(() => {
+        const p = proporcionDe(img.clave);
+        const caja = {
+          aspectRatio: p,
+          width: "100%",
+          maxWidth: `min(100%, ${(20 * p).toFixed(2)}rem)`,
+        } as const;
+        return img.src ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={img.src}
+            alt=""
+            style={caja}
+            className="rounded-xl border border-line-2 object-cover"
+          />
+        ) : (
+          <div
+            style={caja}
+            className="grid place-items-center rounded-xl border border-dashed border-line-2 text-center text-[0.8125rem] text-ink-500"
+          >
+            Sin imagen
+          </div>
+        );
+      })()}
       <p className="label-mono">
         {img.subida
           ? "Subida desde el panel"
