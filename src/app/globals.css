@@ -1,26 +1,508 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ──────────────────────────────────────────────────────────────
+   SISTEMA DE DISEÑO — "Papel"
+
+   Reglas del sistema, en orden de importancia:
+
+   1. UN SOLO EJE DE COLOR. La escala `ink` es semántica, no literal:
+      `ink-950` es SIEMPRE el fondo de página y `ink-100` SIEMPRE el
+      texto principal. En el tema oscuro la escala se invierte, así que
+      cada `bg-ink-950` sigue significando lo mismo sin tocar una clase.
+
+   2. UN SOLO ACENTO. No hay paleta de apoyo. Si una sección necesita
+      distinguirse, lo hace con espacio, escala tipográfica o un filete
+      — nunca con un color propio. Es lo que separa un portafolio de un
+      folleto.
+
+   3. LA TIPOGRAFÍA CARGA EL PESO. Una sola familia de display (Inter
+      Tight, en versalitas y tracking muy cerrado) contra una de texto.
+      Sin degradados sobre el texto, sin sombras, sin grano.
+
+   El tema por defecto es el CLARO: el fondo es papel y la tinta es
+   negra. El oscuro existe y es completo, pero es la variante.
+   ────────────────────────────────────────────────────────────── */
+
+/* ── TEMA CLARO (por defecto) ───────────────────────────────── */
+:root,
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  /* Escala semántica: 950 = fondo · 100 = texto principal */
+  --ink-950: #e8e8e5;
+  --ink-900: #f0f0ee;
+  --ink-850: #ffffff;
+  --ink-800: #dededa;
+  --ink-700: #c9c9c4;
+  --ink-600: #adada7;
+  --ink-500: #8a8a84;
+  --ink-400: #6b6b66;
+  --ink-300: #4a4a46;
+  --ink-200: #2a2a27;
+  --ink-100: #101010;
+
+  --accent: #1a1a1a;
+  --accent-contra: #e8e8e5;
+
+  --line: rgb(16 16 16 / 0.12);
+  --line-2: rgb(16 16 16 / 0.22);
+  --line-3: rgb(16 16 16 / 0.45);
+
+  --surface: rgb(16 16 16 / 0.03);
+  --surface-2: rgb(16 16 16 / 0.06);
+
+  --shadow-card: 0 30px 70px -40px rgb(16 16 16 / 0.35);
 }
 
+/* ── TEMA OSCURO ────────────────────────────────────────────── */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --ink-950: #0d0d0c;
+  --ink-900: #141413;
+  --ink-850: #1b1b19;
+  --ink-800: #222220;
+  --ink-700: #2e2e2b;
+  --ink-600: #45453f;
+  --ink-500: #6a6a63;
+  --ink-400: #8e8e86;
+  --ink-300: #b0b0a8;
+  --ink-200: #d4d4cd;
+  --ink-100: #f2f2ef;
+
+  --accent: #f2f2ef;
+  --accent-contra: #0d0d0c;
+
+  --line: rgb(242 242 239 / 0.12);
+  --line-2: rgb(242 242 239 / 0.22);
+  --line-3: rgb(242 242 239 / 0.45);
+
+  --surface: rgb(242 242 239 / 0.035);
+  --surface-2: rgb(242 242 239 / 0.07);
+
+  --shadow-card: 0 30px 70px -40px rgb(0 0 0 / 0.9);
+}
+
+/* `inline` hace que las utilidades apunten a la variable en vez de
+   copiar su valor: es lo que permite conmutar el tema en caliente. */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-ink-950: var(--ink-950);
+  --color-ink-900: var(--ink-900);
+  --color-ink-850: var(--ink-850);
+  --color-ink-800: var(--ink-800);
+  --color-ink-700: var(--ink-700);
+  --color-ink-600: var(--ink-600);
+  --color-ink-500: var(--ink-500);
+  --color-ink-400: var(--ink-400);
+  --color-ink-300: var(--ink-300);
+  --color-ink-200: var(--ink-200);
+  --color-ink-100: var(--ink-100);
+
+  --color-accent: var(--accent);
+  --color-accent-contra: var(--accent-contra);
+
+  --color-line: var(--line);
+  --color-line-2: var(--line-2);
+  --color-line-3: var(--line-3);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+
+  --font-display: var(--font-display), "Helvetica Neue", Arial, sans-serif;
+  --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-mono), ui-monospace, monospace;
+
+  --ease-cinema: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+:root {
+  --shell: 1520px;
+}
+
+* {
+  border-color: var(--line);
+}
+
+html {
+  background: var(--ink-950);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  /* Con el clip sólo en <body>, en móvil el viewport de maquetación
+     todavía se ensanchaba unos píxeles y los elementos fijos heredaban
+     ese ancho. Clipando también aquí, nada puede desplazar en horizontal. */
+  overflow-x: clip;
+}
+
+/* Lenis controla el scroll; sin esto el navegador pelea con la animación. */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+/* El <body> va SIN fondo a propósito. El color de página lo pone
+   <html>, y así el planisferio de  —que es fijo y con
+   z-index negativo— cabe entre los dos. Con fondo en el body, éste se
+   pinta después de las capas de z negativo y tapaba el mapa por
+   completo: el SVG estaba en el DOM y no se veía nada. */
+body {
+  color: var(--ink-100);
+  font-family: var(--font-sans);
+  overflow-x: clip;
+}
+
+::selection {
+  background: var(--ink-100);
+  color: var(--ink-950);
+}
+
+/* Fundido al cambiar de tema. Sólo está activo durante el cambio,
+   para no ralentizar las transiciones normales de hover. */
+html.theme-switching,
+html.theme-switching *,
+html.theme-switching *::before,
+html.theme-switching *::after {
+  transition:
+    background-color 0.45s var(--ease-cinema),
+    border-color 0.45s var(--ease-cinema),
+    color 0.45s var(--ease-cinema),
+    fill 0.45s var(--ease-cinema),
+    box-shadow 0.45s var(--ease-cinema) !important;
+}
+
+/* Inversión por escena (ver Escena.tsx y lib/tema.ts). Es el mismo
+   fundido, pero se dispara DURANTE el scroll: por eso animo sólo las tres
+   propiedades que se notan y dejo fuera sombras y rellenos de SVG, que
+   son las caras de repintar. */
+html.theme-escena,
+html.theme-escena *,
+html.theme-escena *::before,
+html.theme-escena *::after {
+  transition:
+    background-color 0.55s var(--ease-cinema),
+    border-color 0.55s var(--ease-cinema),
+    color 0.55s var(--ease-cinema) !important;
+}
+
+/* Cursor propio: el del sistema se retira mientras el nuestro existe.
+   Los campos de texto conservan el suyo — la barra de intercalación
+   dice dónde va a caer la letra y ningún efecto compensa perderla. */
+html.cursor-fluido,
+html.cursor-fluido * {
+  cursor: none !important;
+}
+html.cursor-fluido input,
+html.cursor-fluido textarea,
+html.cursor-fluido [contenteditable="true"] {
+  cursor: text !important;
+}
+
+/* Iconos del conmutador de tema: los dos están montados y CSS elige.
+   Evita el desajuste de hidratación de leer el tema en React. */
+.tema-icono {
+  transition:
+    opacity 0.35s var(--ease-cinema),
+    transform 0.55s var(--ease-cinema);
+}
+[data-theme="dark"] .tema-sol,
+[data-theme="light"] .tema-luna {
+  opacity: 0;
+  transform: rotate(-70deg) scale(0.5);
+}
+[data-theme="dark"] .tema-luna,
+[data-theme="light"] .tema-sol {
+  opacity: 1;
+  transform: rotate(0deg) scale(1);
+}
+
+/* Scrollbar discreta ─────────────────────────── */
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--ink-950);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--ink-700);
+  border-radius: 999px;
+  border: 3px solid var(--ink-950);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ink-600);
+}
+
+/* ── Utilidades ──────────────────────────────── */
+
+@utility shell {
+  width: 100%;
+  max-width: var(--shell);
+  margin-inline: auto;
+  padding-inline: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .shell {
+    padding-inline: 2.5rem;
+  }
+}
+@media (min-width: 1280px) {
+  .shell {
+    padding-inline: 3.5rem;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Display: grotesca en versalitas, muy cerrada. Es el único recurso
+   expresivo del sistema, así que se lleva todo el carácter. */
+@utility display {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  line-height: 0.86;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+
+/* Variante para titulares largos de página interior: misma familia,
+   sin versalitas, para que una frase de dos líneas siga siendo legible. */
+@utility display-suave {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 0.95;
+  text-wrap: balance;
+}
+
+@utility label-mono {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-400);
+}
+
+@utility hairline {
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+@utility shadow-card {
+  box-shadow: var(--shadow-card);
+}
+
+/* Máscara de desvanecido para marquesinas */
+@utility fade-x {
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    black 8%,
+    black 92%,
+    transparent
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    black 8%,
+    black 92%,
+    transparent
+  );
+}
+
+/* Enlace con subrayado que se dibuja al pasar por encima */
+@utility subrayado {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  background-size: 0% 1px;
+  transition: background-size 0.5s var(--ease-cinema);
+}
+.subrayado:hover,
+.subrayado:focus-visible {
+  background-size: 100% 1px;
+}
+
+@keyframes marquee-x {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.animate-marquee {
+  animation: marquee-x 48s linear infinite;
+}
+
+/* ── Impresión ────────────────────────────────────────────────
+   El CV impreso ES la página, no una versión reducida en blanco y
+   negro. Se conservan el papel, la tipografía, la escala y los
+   filetes; lo único que se quita es lo que no tiene sentido en papel:
+   barra, pie, cursor, botones y el mapa de fondo.
+
+   `print-color-adjust: exact` es imprescindible: por defecto los
+   navegadores DESCARTAN fondos e imágenes al imprimir para ahorrar
+   tinta, así que sin esta línea el papel gris del diseño sale blanco
+   y el documento deja de parecerse al sitio.
+
+   El tema se fuerza a claro. No es una concesión: el diseño del sitio
+   ES claro —el oscuro es la variante— y un A4 con fondo negro ni se
+   imprime bien ni se lee en pantalla dentro de un PDF adjunto.
+
+   `break-inside: avoid` en cada bloque evita el defecto clásico del
+   currículum impreso: un puesto partido entre dos páginas con el cargo
+   en una y sus logros en la siguiente. */
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+
+  html {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Paleta clara, gane quien gane en el selector del tema. */
+  :root,
+  :root[data-theme="light"],
+  :root[data-theme="dark"] {
+    color-scheme: light;
+    /* Papel BLANCO, no el gris de pantalla: un PDF que se va a adjuntar
+       o a imprimir se espera blanco, y el gris del sitio en A4 se lee
+       como un escaneo. El resto de la escala se mantiene. */
+    --ink-950: #ffffff;
+    --ink-900: #fafafa;
+    --ink-850: #ffffff;
+    --ink-800: #ededea;
+    --ink-700: #d5d5d0;
+    --ink-600: #b4b4ae;
+    --ink-500: #8a8a84;
+    --ink-400: #5f5f5a;
+    --ink-300: #3d3d3a;
+    --ink-200: #232320;
+    --ink-100: #0a0a0a;
+    --accent: #0a0a0a;
+    --accent-contra: #ffffff;
+    --line: rgb(16 16 16 / 0.12);
+    --line-2: rgb(16 16 16 / 0.22);
+    --line-3: rgb(16 16 16 / 0.45);
+  }
+
+  html,
+  body {
+    background: var(--ink-950) !important;
+    color: var(--ink-100) !important;
+  }
+
+  /* Fuera lo que sólo existe en pantalla. El mapa se retira porque un
+     elemento fijo se imprime sólo en la primera página: en la segunda
+     desaparecería y parecería un fallo. */
+  header[class*="fixed"],
+  body > footer,
+  .no-imprimir,
+  .carga,
+  .mapa-fondo,
+  [class*="z-\[100\]"],
+  [class*="z-\[70\]"] {
+    display: none !important;
+  }
+
+  .cv {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+
+  /* Sólo los bloques que CABEN en una página. Pedírselo a una sección
+     de dos páginas no evita el corte: adelanta el salto y deja media
+     página en blanco. */
+  .cv-bloque {
+    break-inside: avoid;
+  }
+
+  .cv h2,
+  .cv .cv-acto {
+    break-after: avoid;
+  }
+
+  /* Los enlaces se imprimen como texto: en papel un subrayado no lleva
+     a ninguna parte. */
+  .cv a {
+    color: inherit !important;
+    text-decoration: none !important;
+  }
+
+  /* ── Densidad de papel ──────────────────────────────────────
+     El aire del sitio está calculado para una pantalla que se recorre
+     con scroll; trasladado a A4 tal cual, el currículum salía en cinco
+     páginas. Nadie lee cinco páginas de CV.
+
+     Se comprime el ritmo vertical y la escala tipográfica, NO el
+     diseño: siguen la grotesca en versalitas, los actos numerados
+     sobre filete y el papel gris. Los selectores por elemento dentro
+     de `.cv` ganan a las utilidades de Tailwind por especificidad, así
+     que no hace falta ni un `!important`. */
+  .cv h1 {
+    font-size: 32pt;
+  }
+
+  .cv section {
+    margin-top: 7mm;
+  }
+
+  .cv header + section {
+    margin-top: 6mm;
+  }
+
+  .cv .cv-acto {
+    margin-bottom: 4mm;
+  }
+
+  .cv article {
+    padding-top: 2.5mm;
+  }
+
+  /* Separación entre puestos y entre proyectos. */
+  .cv article + article {
+    margin-top: 4.5mm;
+  }
+
+  /* El párrafo del manifiesto es el titular de la primera sección: se
+     queda grande, pero no tanto como en pantalla. */
+  .cv .display-suave {
+    font-size: 14pt;
+    line-height: 1.15;
+  }
+
+  .cv h3 {
+    font-size: 12.5pt;
+  }
+
+  .cv p,
+  .cv li {
+    font-size: 9pt;
+    line-height: 1.35;
+  }
+
+  .cv .label-mono {
+    font-size: 7pt;
+  }
+}
+
+/* Accesibilidad: apaga el cine si el sistema lo pide */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  /* El telón se oculta por CSS y no por React: así no llega a pintarse
+     ni un fotograma antes de que el componente pueda decidir. */
+  .carga {
+    display: none !important;
+  }
 }
