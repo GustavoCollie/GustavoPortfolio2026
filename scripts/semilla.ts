@@ -22,7 +22,7 @@
 
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { randomBytes, scryptSync } from "node:crypto";
+import { hashear } from "../src/db/clave";
 import { pool, sql } from "../src/db/cliente";
 import * as es from "../src/data/content";
 import * as en from "../src/data/content.en";
@@ -227,14 +227,26 @@ async function main() {
   // La contraseña sólo se fija si aún no hay ninguna: volver a sembrar no
   // debe revertir una contraseña que se haya cambiado desde el panel.
   const clave_ = process.env.ADMIN_PASSWORD;
+  // El correo cae al del perfil: es el que la persona ya usa y el que
+  // aparece en el sitio, así que no hay una credencial más que recordar.
+  const correo = (process.env.ADMIN_EMAIL || es.perfil.email)
+    .trim()
+    .toLowerCase();
   const [ya] = await sql<{ n: string }>("SELECT count(*) AS n FROM admin");
   if (clave_ && ya.n === "0") {
-    const sal = randomBytes(16).toString("hex");
-    const hash = scryptSync(clave_, sal, 64).toString("hex");
-    await sql("INSERT INTO admin (id, hash) VALUES (1, $1)", [`${sal}:${hash}`]);
-    console.log("  admin: contraseña fijada desde ADMIN_PASSWORD.");
+    await sql("INSERT INTO admin (id, email, hash) VALUES (1, $1, $2)", [
+      correo,
+      await hashear(clave_),
+    ]);
+    console.log(`  admin: acceso fijado para ${correo}.`);
   } else if (ya.n !== "0") {
-    console.log("  admin: ya había contraseña, no se toca.");
+    // La contraseña no se toca —puede haberse cambiado desde el panel—
+    // pero el correo sí se pone al día si aún estaba vacío, que es como
+    // quedaron las bases sembradas antes de que el acceso lo pidiera.
+    await sql("UPDATE admin SET email = $1 WHERE id = 1 AND email = ''", [
+      correo,
+    ]);
+    console.log(`  admin: ya había contraseña, no se toca (correo: ${correo}).`);
   } else {
     console.log("  admin: sin ADMIN_PASSWORD, el panel no dejará entrar.");
   }

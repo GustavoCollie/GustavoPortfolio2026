@@ -163,9 +163,13 @@ CREATE INDEX IF NOT EXISTS mensajes_recibido_idx
 -- nunca en claro: quien pueda leer la base no puede entrar al panel.
 CREATE TABLE IF NOT EXISTS admin (
   id              INT PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+  email           TEXT NOT NULL DEFAULT '',
   hash            TEXT NOT NULL,
   actualizado_en  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Para bases sembradas antes de que el acceso pidiera correo.
+ALTER TABLE admin ADD COLUMN IF NOT EXISTS email TEXT NOT NULL DEFAULT '';
 
 -- ── Imágenes ─────────────────────────────────────────────────
 -- Los bytes viven en la base y se sirven por `/api/imagen/[clave]`.

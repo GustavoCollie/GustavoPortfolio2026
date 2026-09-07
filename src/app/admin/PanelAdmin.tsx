@@ -98,6 +98,7 @@ const PESTANAS = [
   "Caso",
   "Textos",
   "Imágenes",
+  "Mensajes",
 ] as const;
 type Pestana = (typeof PESTANAS)[number];
 
@@ -115,11 +116,13 @@ export default function PanelAdmin({
   inicial,
   idioma,
   imagenes,
+  mensajes,
   escritura,
 }: {
   inicial: DatosPanel;
   idioma: "es" | "en";
   imagenes: { clave: string; etiqueta: string; src: string; alt: string; pie: string; foco: string; subida: boolean }[];
+  mensajes: Mensaje[];
   escritura: boolean;
 }) {
   const [pestana, setPestana] = useState<Pestana>("Paleta");
@@ -699,6 +702,8 @@ export default function PanelAdmin({
         </div>
       )}
 
+      {pestana === "Mensajes" && <PestanaMensajes mensajes={mensajes} />}
+
       {pestana === "Textos" && (
         <EditorJson
           titulo="Textos de interfaz"
@@ -707,6 +712,93 @@ export default function PanelAdmin({
           onChange={(v) => setDatos((d) => ({ ...d, textos: v }))}
         />
       )}
+    </div>
+  );
+}
+
+/* ── Mensajes ───────────────────────────────────────────────── */
+
+export type Mensaje = {
+  id: number;
+  recibido_en: string;
+  nombre: string;
+  email: string;
+  empresa: string | null;
+  interes: string | null;
+  mensaje: string;
+};
+
+/**
+ * Lo que ha entrado por el formulario de contacto.
+ *
+ * Sólo lectura, y a propósito: el valor de esta pestaña es que exista un
+ * sitio donde el mensaje sigue estando aunque el correo no saliera.
+ * Poder borrarlos desde aquí sólo añadiría maneras de perderlos.
+ *
+ * No se pinta a partir de `datos` porque no forma parte de lo que se
+ * guarda: mezclarlo con el estado del formulario haría que un «guardar»
+ * de la paleta arrastrara los mensajes.
+ */
+function PestanaMensajes({ mensajes }: { mensajes: Mensaje[] }) {
+  if (mensajes.length === 0) {
+    return (
+      <p className="text-[0.9375rem] leading-relaxed text-ink-400">
+        Todavía no ha llegado ningún mensaje por el formulario de contacto.
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <p className="text-[0.8125rem] text-ink-400">
+        {mensajes.length} mensaje{mensajes.length === 1 ? "" : "s"}, del más
+        reciente al más antiguo.
+      </p>
+
+      {mensajes.map((m) => (
+        <article
+          key={m.id}
+          className="rounded-xl border border-line-2 bg-ink-950/40 p-5"
+        >
+          <header className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+            <h3 className="text-[0.9375rem] font-medium text-ink-100">
+              {m.nombre}
+              {m.empresa && (
+                <span className="font-normal text-ink-400"> · {m.empresa}</span>
+              )}
+            </h3>
+            <time
+              dateTime={m.recibido_en}
+              className="label-mono text-[0.6875rem] text-ink-400"
+            >
+              {new Date(m.recibido_en).toLocaleString("es-CL", {
+                dateStyle: "medium",
+                timeStyle: "short",
+              })}
+            </time>
+          </header>
+
+          <p className="mt-1 text-[0.8125rem] text-ink-400">
+            {/* Enlace de respuesta con el asunto ya puesto: el gesto que
+                sigue a leer un mensaje es contestarlo. */}
+            <a
+              href={`mailto:${m.email}?subject=${encodeURIComponent(
+                `Re: ${m.interes ?? "tu mensaje"}`,
+              )}`}
+              className="underline decoration-line-2 underline-offset-4 transition hover:text-ink-100"
+            >
+              {m.email}
+            </a>
+            {m.interes && <span> · {m.interes}</span>}
+          </p>
+
+          {/* `whitespace-pre-wrap` conserva los saltos de línea que la
+              persona escribió; sin él, tres párrafos se leen como uno. */}
+          <p className="mt-3 whitespace-pre-wrap text-[0.9375rem] leading-relaxed text-ink-100">
+            {m.mensaje}
+          </p>
+        </article>
+      ))}
     </div>
   );
 }

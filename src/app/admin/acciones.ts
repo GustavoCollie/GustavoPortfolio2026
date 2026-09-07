@@ -36,7 +36,7 @@ import { invalidarContenido } from "@/db/consultas";
 import type { Idioma } from "@/data/idioma";
 import {
   abrirSesion,
-  claveValida,
+  credencialesValidas,
   cerrarSesion as cerrarSesionDb,
   haySesion as haySesionDb,
 } from "@/db/sesion";
@@ -45,23 +45,26 @@ export async function iniciarSesion(
   _previo: EstadoSesion,
   datos: FormData,
 ): Promise<EstadoSesion> {
+  const email = String(datos.get("email") ?? "");
   const enviada = String(datos.get("clave") ?? "");
 
-  // El mensaje no distingue entre «no hay contraseña puesta» y «la
-  // contraseña es otra»: contarlo sólo ayudaría a quien no debería estar
-  // probando. El detalle va al registro del servidor.
+  // El mensaje no distingue entre «no hay contraseña puesta», «el correo
+  // es otro» y «la contraseña es otra»: contarlo sólo ayudaría a quien no
+  // debería estar probando. El detalle va al registro del servidor.
   let ok = false;
   try {
-    ok = await claveValida(enviada);
+    ok = await credencialesValidas(email, enviada);
   } catch (e) {
-    console.error("No se pudo comprobar la contraseña del panel:", e);
+    console.error("No se pudieron comprobar las credenciales del panel:", e);
     return {
       estado: "error",
       mensaje: "No hay conexión con la base de datos. Revisa DATABASE_URL.",
     };
   }
 
-  if (!ok) return { estado: "error", mensaje: "Clave incorrecta." };
+  if (!ok) {
+    return { estado: "error", mensaje: "Correo o contraseña incorrectos." };
+  }
 
   if (!(await abrirSesion())) {
     return {

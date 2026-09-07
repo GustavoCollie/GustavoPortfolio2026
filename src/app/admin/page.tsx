@@ -1,11 +1,13 @@
 import { haySesion } from "./acciones";
 import Acceso from "./Acceso";
-import PanelAdmin, { type DatosPanel } from "./PanelAdmin";
+import PanelAdmin, { type DatosPanel, type Mensaje } from "./PanelAdmin";
 import { leerContenido } from "@/db/consultas";
 import { hayBase, sql } from "@/db/cliente";
 import type { Idioma } from "@/data/idioma";
 import type { PaletaGuardada, Tema } from "@/lib/paleta";
 import { claveCaptura } from "@/lib/capturas";
+import { esFront } from "@/lib/superficie";
+import { notFound } from "next/navigation";
 
 /** Nunca cachear: el panel tiene que mostrar la base tal y como está. */
 export const dynamic = "force-dynamic";
@@ -25,6 +27,13 @@ export default async function AdminPage({
 }: {
   searchParams: Promise<{ idioma?: string }>;
 }) {
+  /* La misma guarda que el layout, y no es redundante: Next renderiza
+     layout y página a la vez, así que sin esto la página seguía
+     consultando Postgres —y registrando un «permission denied» con el rol
+     de sólo lectura— antes de que el 404 del layout ganara la carrera. La
+     respuesta era correcta; el trabajo, no. */
+  if (esFront) notFound();
+
   if (!(await haySesion())) return <Acceso />;
 
   const { idioma: pedido } = await searchParams;
@@ -118,11 +127,32 @@ export default async function AdminPage({
     ]),
   ];
 
+  /* Lo que ha llegado por el formulario de contacto. El límite es alto
+     pero existe: un formulario público es un formulario que alguien
+     acabará llenando con un script, y sin tope la página cargaría hasta
+     el último intento. */
+  const filasMensajes = hayBase()
+    ? await sql<Omit<Mensaje, "recibido_en"> & { recibido_en: Date }>(
+        `SELECT id, recibido_en, nombre, email, empresa, interes, mensaje
+           FROM mensajes ORDER BY recibido_en DESC LIMIT 200`,
+      )
+    : [];
+
+  /* `pg` devuelve un Date; el componente es de cliente y necesita algo que
+     valga tal cual en el atributo `datetime`. La conversión se hace aquí
+     y no en la consulta para que sea evidente al leer el componente por
+     qué el campo es una cadena. */
+  const mensajes: Mensaje[] = filasMensajes.map((m) => ({
+    ...m,
+    recibido_en: m.recibido_en.toISOString(),
+  }));
+
   return (
     <PanelAdmin
       inicial={inicial}
       idioma={idioma}
       imagenes={imagenes}
+      mensajes={mensajes}
       escritura={hayBase()}
     />
   );

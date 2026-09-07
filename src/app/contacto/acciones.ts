@@ -1,6 +1,7 @@
 "use server";
 
 import { perfil } from "@/data/content";
+import { hayBase, sql } from "@/db/cliente";
 import type { EstadoEnvio } from "./tipos";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -33,6 +34,34 @@ function limpiarTexto(valor: FormDataEntryValue | null, max: number) {
     .join("")
     .trim()
     .slice(0, max);
+}
+
+/**
+ * Deja el mensaje en la tabla `mensajes`. Devuelve si lo consiguió.
+ *
+ * No lanza nunca: que la base falle no puede tumbar el formulario, sólo
+ * quitarle el respaldo. El rol del sitio público tiene INSERT aquí y no
+ * SELECT, así que puede dejar mensajes pero no leer los de nadie.
+ */
+async function guardar(m: {
+  nombre: string;
+  email: string;
+  empresa: string;
+  interes: string;
+  mensaje: string;
+}): Promise<boolean> {
+  if (!hayBase()) return false;
+  try {
+    await sql(
+      `INSERT INTO mensajes (nombre, email, empresa, interes, mensaje)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [m.nombre, m.email, m.empresa || null, m.interes, m.mensaje],
+    );
+    return true;
+  } catch (e) {
+    console.error("No se pudo guardar el mensaje de contacto:", e);
+    return false;
+  }
 }
 
 /**
@@ -69,10 +98,27 @@ export async function enviarMensaje(
     return { estado: "error", mensaje: "Faltan datos por corregir.", errores };
   }
 
+  /* Lo primero es GUARDARLO. El correo puede fallar —una clave caducada,
+     el proveedor caído, el dominio sin verificar— y hasta ahora un fallo
+     así significaba perder el mensaje: la persona veía «escríbeme
+     directo» y casi nadie lo hace. En la base queda pase lo que pase, y
+     el panel lo enseña.
+
+     Si la base tampoco está, se sigue: el correo aún puede salir. */
+  const guardado = await guardar({ nombre, email, empresa, interes, mensaje });
+
   const clave = process.env.RESEND_API_KEY;
   const remitente = process.env.RESEND_FROM;
 
   if (!clave || !remitente) {
+    // Guardado pero sin avisar por correo: para quien escribe el mensaje
+    // ha llegado, que es la verdad. El aviso es problema del dueño.
+    if (guardado) {
+      return {
+        estado: "ok",
+        mensaje: `Mensaje recibido, ${nombre.split(" ")[0]}. Te respondo en menos de 24 h hábiles.`,
+      };
+    }
     return {
       estado: "sin-configurar",
       mensaje:
@@ -113,11 +159,7 @@ export async function enviarMensaje(
     if (!respuesta.ok) {
       const detalle = await respuesta.text().catch(() => "");
       console.error("Resend respondió", respuesta.status, detalle);
-      return {
-        estado: "error",
-        mensaje:
-          "No pude enviarlo desde aquí. Escríbeme directo al correo y lo vemos.",
-      };
+      return falloDeCorreo(guardado, nombre);
     }
 
     return {
@@ -126,10 +168,28 @@ export async function enviarMensaje(
     };
   } catch (e) {
     console.error("Fallo enviando el correo de contacto:", e);
+    return falloDeCorreo(guardado, nombre);
+  }
+}
+
+/**
+ * Qué contestar cuando el correo no sale.
+ *
+ * Si el mensaje quedó guardado, no hay nada que lamentar: llegó. Sólo
+ * llegará por el panel en vez de por la bandeja de entrada, y eso a quien
+ * escribe ni le va ni le viene. Decirle «no pude enviarlo» cuando sí está
+ * guardado lo empujaría a escribir otra vez.
+ */
+function falloDeCorreo(guardado: boolean, nombre: string): EstadoEnvio {
+  if (guardado) {
     return {
-      estado: "error",
-      mensaje:
-        "No pude enviarlo desde aquí. Escríbeme directo al correo y lo vemos.",
+      estado: "ok",
+      mensaje: `Mensaje recibido, ${nombre.split(" ")[0]}. Te respondo en menos de 24 h hábiles.`,
     };
   }
+  return {
+    estado: "error",
+    mensaje:
+      "No pude enviarlo desde aquí. Escríbeme directo al correo y lo vemos.",
+  };
 }

@@ -28,6 +28,32 @@ devuelve 500 porque la base está caída es peor que uno con el texto de la
 
 ## Arquitectura
 
+### Dos superficies, un repositorio
+
+El mismo código se despliega dos veces y una variable las distingue:
+
+| | `SUPERFICIE=front` | `SUPERFICIE=backend` |
+|---|---|---|
+| Qué es | el sitio público | el panel |
+| `/admin` | 404 | la razón de existir |
+| Postgres | rol de sólo lectura | rol completo |
+| Indexación | sí | `Disallow: /` |
+
+Se separan porque tienen amenazas distintas. El front lo visita
+cualquiera y sólo necesita **leer**; el panel lo visita una persona y
+necesita **escribirlo todo**. En un único despliegue el sitio público
+carga con las credenciales de escritura sin usarlas nunca, y cualquier
+fallo suyo las pone al alcance.
+
+El rol del front (`src/db/roles.sql`) puede leer el contenido e
+**insertar** en `mensajes` — pero no leerlos de vuelta, así que una
+lectura no autorizada en el front no expone lo que han escrito otras
+personas. Sobre `admin`, donde vive el hash de la contraseña, no tiene
+ningún permiso.
+
+Si la variable falta se asume `front`: desplegar sin configurar nada da
+el sitio público sin panel, nunca un panel abierto por descuido.
+
 ### El contenido vive en la base
 
 `src/data/content.ts` y `content.en.ts` son el contenido **de partida**:
@@ -71,10 +97,20 @@ de trayectoria y los canales de contacto.
 
 ### Panel de administración
 
-`/admin`, protegido con contraseña scrypt en la base y cookie de sesión
+`/admin`, con correo y contraseña —scrypt en la base— y cookie de sesión
 firmada con HMAC. Edita perfil, resultados, trayectoria, proyectos,
 competencias, metodología, formación, el caso de estudio, los textos de
-interfaz, la paleta y las imágenes — **en los dos idiomas**.
+interfaz, la paleta y las imágenes — **en los dos idiomas**—, y lee lo
+que llega por el formulario de contacto.
+
+El correo no añade seguridad criptográfica; evita el ataque más común
+contra un panel de dirección conocida, que es probar contraseñas sabiendo
+que ese es el único campo. El error es el mismo para los dos: decir «ese
+correo no es» confirmaría cuál sí.
+
+Los mensajes se guardan **antes** de intentar el envío por correo. Antes,
+una clave de Resend caducada significaba perder el mensaje: la persona
+leía «escríbeme directo» y casi nadie lo hace.
 
 El caso de estudio y los textos se editan como JSON validado: son
 estructuras profundas y heterogéneas que se tocan una vez al año, y un
@@ -116,6 +152,12 @@ el documento sale en blanco y negro.
 | `npm run lint` | ESLint |
 | `npm run db:local` | Postgres 17 en Docker |
 | `npm run db:seed` | Crea el esquema y siembra los dos idiomas |
+| `npm run db:credenciales -- <correo> <clave>` | Fija el acceso al panel |
+
+`db:credenciales` existe porque la semilla, a propósito, no toca una
+contraseña que ya está puesta: sembrar de nuevo no debe revertir un
+cambio hecho desde el panel. Cuando hay que forzarla, que sea otro
+comando deja clara la otra intención.
 
 La semilla es **idempotente** y poda: la base queda exactamente como el
 repositorio, incluido lo que se haya eliminado. Sirve para volver al
@@ -127,9 +169,34 @@ lanzarla contra producción.
 
 ## Despliegue
 
-1. Provisiona Postgres (Supabase o Neon).
-2. Crea el esquema y siembra con la conexión **directa**:
+1. Provisiona Postgres en Supabase.
+2. Crea el esquema y siembra con la conexión **directa** — el pooler en
+   modo transacción no admite la DDL:
    `DATABASE_URL="<directa>" npm run db:seed`
-3. En Vercel, configura las variables de `.env.example`. Para
-   `DATABASE_URL` usa la cadena del **pooler**, no la directa.
-4. Despliega.
+3. Crea el rol de sólo lectura, también con la directa:
+   `psql "<directa>" -v clave="'<una-clave-larga>'" -f src/db/roles.sql`
+4. Crea **dos** proyectos en Vercel sobre el mismo repositorio:
+
+   **Front** — el dominio público.
+   ```
+   SUPERFICIE=front
+   DATABASE_URL=<pooler, rol portafolio_lector>
+   NEXT_PUBLIC_SITE_URL=https://<dominio>
+   RESEND_API_KEY / RESEND_FROM   (opcionales)
+   ```
+
+   **Backend** — sin dominio propio.
+   ```
+   SUPERFICIE=backend
+   DATABASE_URL=<pooler, rol postgres>
+   ADMIN_SECRET=<32 caracteres o más>
+   ```
+
+5. Despliega. En el front, `/admin` debe devolver 404; en el backend,
+   debe pedir correo y contraseña.
+
+Las páginas se prerenderizan leyendo Postgres durante la compilación, y
+el panel las invalida por etiqueta al guardar. Si la base no responde
+durante el build, el sitio se publica con el contenido del repositorio
+sin un solo error en el registro — por eso la espera de conexión es de
+30 s en vez de los 10 habituales.

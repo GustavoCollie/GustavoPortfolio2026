@@ -1,13 +1,8 @@
 import "server-only";
 import { cookies } from "next/headers";
-import {
-  createHmac,
-  randomBytes,
-  scrypt as scryptCb,
-  timingSafeEqual,
-} from "node:crypto";
-import { promisify } from "node:util";
+import { createHmac } from "node:crypto";
 import { sql } from "./cliente";
+import { hashear, igual, normalizarEmail, verificar } from "./clave";
 
 /**
  * ─────────────────────────────────────────────────────────────
@@ -36,12 +31,6 @@ import { sql } from "./cliente";
  * ─────────────────────────────────────────────────────────────
  */
 
-const scrypt = promisify(scryptCb) as (
-  clave: string,
-  sal: string,
-  largo: number,
-) => Promise<Buffer>;
-
 const COOKIE = "admin_sesion";
 const DURACION = 60 * 60 * 8; // 8 horas
 
@@ -54,36 +43,34 @@ function secreto() {
 const firmar = (carga: string, s: string) =>
   createHmac("sha256", s).update(carga).digest("hex");
 
-/** Compara dos cadenas sin filtrar en cuánto se parecen. */
-function igual(a: string, b: string) {
-  const ba = Buffer.from(a);
-  const bb = Buffer.from(b);
-  // `timingSafeEqual` exige la misma longitud; comparar longitudes ya
-  // filtra un bit, pero no el contenido, que es lo que importa.
-  return ba.length === bb.length && timingSafeEqual(ba, bb);
+/** ¿Son estas las credenciales del panel? */
+export async function credencialesValidas(
+  email: string,
+  enviada: string,
+): Promise<boolean> {
+  const filas = await sql<{ email: string; hash: string }>(
+    "SELECT email, hash FROM admin WHERE id = 1",
+  );
+  const fila = filas[0];
+  if (!fila?.hash) return false;
+
+  /* La contraseña se comprueba SIEMPRE, aunque el correo ya no cuadre.
+     Si se saliera antes, un correo equivocado respondería en un
+     milisegundo y el correcto en cien: el tiempo de respuesta diría cuál
+     de los dos campos hay que seguir probando. */
+  const claveOk = await verificar(enviada, fila.hash);
+  const correoOk = igual(normalizarEmail(email), normalizarEmail(fila.email));
+
+  return claveOk && correoOk;
 }
 
-/** ¿Es esta la contraseña del panel? */
-export async function claveValida(enviada: string): Promise<boolean> {
-  const filas = await sql<{ hash: string }>("SELECT hash FROM admin WHERE id = 1");
-  const guardado = filas[0]?.hash;
-  if (!guardado) return false;
-
-  const [sal, esperado] = guardado.split(":");
-  if (!sal || !esperado) return false;
-
-  const calculado = (await scrypt(enviada, sal, 64)).toString("hex");
-  return igual(calculado, esperado);
-}
-
-/** Cambia la contraseña. La usa el propio panel. */
-export async function fijarClave(nueva: string) {
-  const sal = randomBytes(16).toString("hex");
-  const hash = (await scrypt(nueva, sal, 64)).toString("hex");
+/** Fija correo y contraseña. La usan los scripts y el propio panel. */
+export async function fijarCredenciales(email: string, nueva: string) {
   await sql(
-    `INSERT INTO admin (id, hash) VALUES (1, $1)
-     ON CONFLICT (id) DO UPDATE SET hash = $1, actualizado_en = now()`,
-    [`${sal}:${hash}`],
+    `INSERT INTO admin (id, email, hash) VALUES (1, $1, $2)
+     ON CONFLICT (id) DO UPDATE
+       SET email = $1, hash = $2, actualizado_en = now()`,
+    [normalizarEmail(email), await hashear(nueva)],
   );
 }
 

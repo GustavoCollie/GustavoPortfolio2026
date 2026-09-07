@@ -155,7 +155,7 @@ export default function ContactForm() {
           rows={5}
           aria-invalid={Boolean(estado.errores?.mensaje)}
           placeholder="Cuéntame el contexto: qué problema hay que resolver y en qué plazo."
-          className={`w-full resize-none border-0 border-b bg-transparent px-0 py-3 text-[0.9375rem] text-ink-100 outline-none transition placeholder:text-ink-500 ${
+          className={`w-full resize-none border-0 border-b bg-transparent px-0 py-3 text-[1rem] md:text-[0.9375rem] text-ink-100 outline-none transition placeholder:text-ink-500 ${
             estado.errores?.mensaje
               ? "border-ink-100"
               : "border-line-2 focus:border-ink-100"
@@ -254,7 +254,11 @@ function Campo({
         aria-invalid={Boolean(error)}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className={`w-full border-0 border-b bg-transparent px-0 py-3 text-[0.9375rem] text-ink-100 outline-none transition placeholder:text-ink-500 ${
+        /* 16 px en móvil y 15 en escritorio no es un descuido: por debajo
+           de 16 px, Safari en iOS amplía la página al enfocar un campo y
+           la deja descuadrada, sin forma de volver. El grado de diferencia
+           no se nota; el zoom sí. */
+        className={`w-full border-0 border-b bg-transparent px-0 py-3 text-[1rem] md:text-[0.9375rem] text-ink-100 outline-none transition placeholder:text-ink-500 ${
           error ? "border-ink-100" : "border-line-2 focus:border-ink-100"
         }`}
       />

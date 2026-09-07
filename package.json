@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "db:seed": "tsx --env-file=.env.local scripts/semilla.ts",
-    "db:local": "docker run --name portafolio-pg -e POSTGRES_PASSWORD=portafolio -e POSTGRES_DB=portafolio -p 5432:5432 -d postgres:17-alpine"
+    "db:local": "docker run --name portafolio-pg -e POSTGRES_PASSWORD=portafolio -e POSTGRES_DB=portafolio -p 5432:5432 -d postgres:17-alpine",
+    "db:credenciales": "tsx --env-file=.env.local scripts/credenciales.ts"
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",

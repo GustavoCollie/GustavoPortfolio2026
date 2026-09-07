@@ -7,11 +7,21 @@ import { SESION_INICIAL, type EstadoSesion } from "./tipos";
 /**
  * Puerta del panel.
  *
- * Es una clave compartida en cookie, no autenticación de verdad: suficiente
- * para que /admin no quede abierto, y honesto sobre lo que es. En producción
- * el panel además no puede escribir nada, así que el riesgo se limita a ver
- * contenido que ya es público.
+ * Correo y contraseña, ambos comprobados contra la tabla `admin`. El
+ * correo no añade seguridad criptográfica —la contraseña es lo que
+ * protege— pero sí evita el ataque más común contra un panel conocido:
+ * probar contraseñas sabiendo que el único campo que hay que acertar es
+ * ese. Y deja que el navegador guarde la credencial como lo que es.
+ *
+ * El error es siempre el mismo para los dos campos. Decir «ese correo no
+ * es» confirmaría cuáles existen.
  */
+/* Los dos campos son idénticos; que lo sean por compartir la constante y
+   no por copiarla evita que dentro de un mes uno tenga el foco azul y el
+   otro no. */
+const CAMPO =
+  "w-full rounded-xl border border-line-2 bg-ink-950/60 px-4 py-3.5 text-[16px] text-ink-100 outline-none transition focus:border-ink-100 focus:ring-2";
+
 export default function Acceso() {
   const [estado, accion, enviando] = useActionState<EstadoSesion, FormData>(
     iniciarSesion,
@@ -26,19 +36,36 @@ export default function Acceso() {
           Área privada
         </h1>
         <p className="mt-4 text-[0.9375rem] leading-relaxed text-ink-400">
-          Introduce la clave para administrar el contenido y la paleta.
+          Entra con tu correo y contraseña para administrar el contenido y la
+          paleta.
         </p>
 
         <form action={accion} className="mt-8">
-          <label htmlFor="clave" className="label-mono mb-2 block">
-            Clave
+          <label htmlFor="email" className="label-mono mb-2 block">
+            Correo
+          </label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            autoComplete="username"
+            inputMode="email"
+            autoCapitalize="none"
+            spellCheck={false}
+            required
+            className={CAMPO}
+          />
+
+          <label htmlFor="clave" className="label-mono mt-5 mb-2 block">
+            Contraseña
           </label>
           <input
             id="clave"
             name="clave"
             type="password"
             autoComplete="current-password"
-            className="w-full rounded-xl border border-line-2 bg-ink-950/60 px-4 py-3.5 text-[0.9375rem] text-ink-100 outline-none transition focus:border-ink-100 focus:ring-2 focus:border-ink-100"
+            required
+            className={CAMPO}
           />
           <button
             type="submit"
