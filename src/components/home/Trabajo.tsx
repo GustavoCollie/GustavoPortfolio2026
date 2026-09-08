@@ -88,6 +88,16 @@ function Fila({
 }) {
   const numero = String(index + 1).padStart(2, "0");
 
+  // Los proyectos con caso de estudio escrito llevan directo a leerlo:
+  // pasar por la lista de proyectos era un salto de más para acabar
+  // pulsando otro enlace con el mismo texto. Los que todavía no tienen
+  // caso siguen apuntando a su ficha ampliada en /proyectos.
+  const tieneCaso = proyecto.slug === "collie-app";
+  const destino = tieneCaso
+    ? ruta("caso", idioma)
+    : `${ruta("trabajo", idioma)}#${proyecto.slug}`;
+  const etiqueta = tieneCaso ? t.comun.leerCaso : t.comun.verCaso;
+
   return (
     <article className="shell border-t border-line py-14 md:py-20">
       <div className="mb-8 flex flex-wrap items-baseline gap-x-6 gap-y-2">
@@ -97,8 +107,8 @@ function Fila({
       </div>
 
       <Link
-        href={`${ruta("trabajo", idioma)}#${proyecto.slug}`}
-        data-cursor={t.comun.verCaso}
+        href={destino}
+        data-cursor={etiqueta}
         aria-label={`${t.comun.verCasoDe} ${proyecto.nombre}`}
         className="group block focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ink-100"
       >
@@ -142,10 +152,10 @@ function Fila({
           {proyecto.stack.join(" · ")}
         </p>
         <Link
-          href={`${ruta("trabajo", idioma)}#${proyecto.slug}`}
+          href={destino}
           className="subrayado ml-auto shrink-0 text-[0.875rem] text-ink-100"
         >
-          {t.comun.verCaso} <span aria-hidden>↗</span>
+          {etiqueta} <span aria-hidden>↗</span>
         </Link>
       </Reveal>
     </article>
