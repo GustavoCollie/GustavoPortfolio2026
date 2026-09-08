@@ -189,14 +189,24 @@ export function resolverPaleta(guardada: PaletaGuardada | undefined, tema: Tema)
  * ─────────────────────────────────────────────────────────────
  */
 
-/** Cuánto se acerca cada peldaño a la tinta, de 0 (fondo) a 1 (tinta). */
+/**
+ * Cuánto se acerca cada peldaño a la tinta, de 0 (fondo) a 1 (tinta).
+ *
+ * `ink-400` en claro va un punto más oscuro que en el sistema original.
+ * No es capricho: ahí vive el párrafo de «problema», que es texto de
+ * lectura, y con la proporción de «Papel» se quedaba en 4,4 de
+ * contraste — por debajo del 4,5 que pide AA. El tema por defecto no lo
+ * nota, porque sin colores guardados no se emite nada; sólo afecta a las
+ * paletas que se eligen desde el panel, y ahí más vale que el texto
+ * secundario se lea.
+ */
 const RAMPA: Record<Tema, Record<string, number>> = {
   light: {
     "ink-800": 0.048,
     "ink-700": 0.147,
     "ink-600": 0.279,
     "ink-500": 0.442,
-    "ink-400": 0.584,
+    "ink-400": 0.6,
     "ink-300": 0.736,
     "ink-200": 0.884,
   },
