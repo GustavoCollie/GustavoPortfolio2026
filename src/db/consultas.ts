@@ -34,6 +34,31 @@ import { imagenes as imagenesFijas } from "@/data/content";
 
 export const ETIQUETA = "contenido";
 
+/**
+ * Sal de despliegue para las claves de caché.
+ *
+ * `unstable_cache` escribe en `.next/cache`, y ese directorio se
+ * RESTAURA entre despliegues para acelerar la compilación. Sin nada que
+ * distinga una compilación de la siguiente, el prerender de las páginas
+ * estáticas —que son casi todas— reutilizaba la entrada de la anterior
+ * en vez de consultar Postgres.
+ *
+ * El efecto era invisible y desesperante: cambiabas la paleta o un texto
+ * en el panel, `updateTag` invalidaba la caché del servidor en marcha y
+ * el sitio lo reflejaba… hasta el siguiente despliegue, que volvía a
+ * publicar el HTML con los valores del día que se cacheó por primera
+ * vez. Parecía que el panel no servía para nada.
+ *
+ * Con la sal, cada despliegue estrena espacio de caché y lee de la base
+ * al menos una vez. Dentro del despliegue no cambia nada: es una
+ * constante, así que se sigue cacheando igual y el panel lo sigue
+ * invalidando por etiqueta.
+ */
+const SAL =
+  process.env.VERCEL_DEPLOYMENT_ID ??
+  process.env.VERCEL_GIT_COMMIT_SHA ??
+  "local";
+
 /** Lo invoca el panel después de guardar. */
 export function invalidarContenido() {
   // `updateTag` y no `revalidateTag`: en Next 16 el segundo caduca la
@@ -127,7 +152,7 @@ async function consultarPaleta(): Promise<PaletaGuardada> {
   return salida;
 }
 
-const paletaCacheada = unstable_cache(consultarPaleta, ["paleta"], {
+const paletaCacheada = unstable_cache(consultarPaleta, ["paleta", SAL], {
   tags: [ETIQUETA],
 });
 
@@ -230,7 +255,7 @@ async function consultar(idioma: Idioma): Promise<Contenido> {
   };
 }
 
-const cacheado = unstable_cache(consultar, ["contenido"], { tags: [ETIQUETA] });
+const cacheado = unstable_cache(consultar, ["contenido", SAL], { tags: [ETIQUETA] });
 
 /**
  * El contenido de una página, venga de donde venga.

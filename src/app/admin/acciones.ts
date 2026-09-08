@@ -292,12 +292,19 @@ async function escribir(idioma: Idioma, e: Payload) {
     if (e.paleta) {
       const limpia = limpiarPaleta(e.paleta);
       for (const tema of ["light", "dark"] as Tema[]) {
-        if (!limpia[tema]) continue;
-        await c.query(
-          `INSERT INTO paleta (tema, datos) VALUES ($1,$2)
-           ON CONFLICT (tema) DO UPDATE SET datos = $2, actualizado_en = now()`,
-          [tema, JSON.stringify(limpia[tema])],
-        );
+        if (limpia[tema]) {
+          await c.query(
+            `INSERT INTO paleta (tema, datos) VALUES ($1,$2)
+             ON CONFLICT (tema) DO UPDATE SET datos = $2, actualizado_en = now()`,
+            [tema, JSON.stringify(limpia[tema])],
+          );
+        } else {
+          /* Un tema sin colores propios se BORRA, no se ignora. Antes se
+             saltaba, así que «Restablecer paleta» dejaba la fila anterior
+             en la base: el panel se veía limpio y el sitio seguía
+             pintando la paleta vieja hasta que alguien recargaba. */
+          await c.query(`DELETE FROM paleta WHERE tema = $1`, [tema]);
+        }
       }
     }
 

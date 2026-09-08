@@ -13,7 +13,7 @@ import CursorFluido from "@/components/CursorFluido";
 import DesplazamientoBorde from "@/components/DesplazamientoBorde";
 import { Analytics } from "@vercel/analytics/next";
 import { SITE_URL } from "@/lib/site";
-import { cssDePaleta } from "@/lib/paleta";
+import { cssDePaleta, resolverPaleta } from "@/lib/paleta";
 import { leerContenido, leerPaleta } from "@/db/consultas";
 import type { Cromo } from "@/components/cromo";
 
@@ -78,12 +78,29 @@ export const metadata: Metadata = {
   twitter: { card: "summary_large_image", title, description },
 };
 
-export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#0d0d0c" },
-    { media: "(prefers-color-scheme: light)", color: "#e8e8e5" },
-  ],
-};
+/**
+ * El color de la barra del navegador en móvil.
+ *
+ * Se resuelve contra la paleta guardada en vez de fijarlo: con los
+ * grises escritos a mano, elegir una paleta azul dejaba la barra del
+ * sistema del color anterior y el corte se veía en cuanto la página
+ * empezaba justo debajo.
+ */
+export async function generateViewport(): Promise<Viewport> {
+  const paleta = await leerPaleta();
+  return {
+    themeColor: [
+      {
+        media: "(prefers-color-scheme: dark)",
+        color: resolverPaleta(paleta, "dark")["ink-950"],
+      },
+      {
+        media: "(prefers-color-scheme: light)",
+        color: resolverPaleta(paleta, "light")["ink-950"],
+      },
+    ],
+  };
+}
 
 /**
  * Se ejecuta antes del primer pintado para evitar el parpadeo de tema:

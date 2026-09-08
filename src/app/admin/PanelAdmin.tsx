@@ -6,10 +6,11 @@ import { ADMIN_INICIAL, type EstadoAdmin } from "./tipos";
 import Recorte from "./Recorte";
 import { proporcionDe } from "@/lib/capturas";
 import {
-  CLAVES,
   GRUPOS,
   PALETA_BASE,
   PRESETS,
+  temaEditado,
+  variablesDePaleta,
   type PaletaGuardada,
   type Tema,
 } from "@/lib/paleta";
@@ -145,13 +146,17 @@ export default function PanelAdmin({
     return () => obs.disconnect();
   }, []);
 
-  // Vista previa en vivo: escribe las variables del tema activo en <html>.
+  /* Vista previa en vivo: escribe las variables del tema activo en <html>.
+     Escribe la escala COMPLETA —la derivada, no sólo los cinco colores
+     editables— porque es lo que el sitio va a inyectar al guardar: si el
+     panel previsualizara únicamente el fondo y el acento, se estaría
+     enseñando una página que no existe. */
   useEffect(() => {
     const raiz = document.documentElement;
-    const valores = datos.paleta[tema] ?? {};
-    for (const clave of CLAVES) {
-      const v = valores[clave];
-      if (v) raiz.style.setProperty(`--${clave}`, v);
+    const editado = temaEditado(datos.paleta, tema);
+    const vars = variablesDePaleta(datos.paleta[tema] ?? {}, tema);
+    for (const clave of Object.keys(vars)) {
+      if (editado) raiz.style.setProperty(`--${clave}`, vars[clave]);
       else raiz.style.removeProperty(`--${clave}`);
     }
   }, [datos.paleta, tema]);
