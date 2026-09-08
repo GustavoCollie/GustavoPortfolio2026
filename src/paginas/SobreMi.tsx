@@ -59,7 +59,9 @@ export default async function SobreMi({ idioma }: { idioma: Idioma }) {
                 fill
                 sizes="(max-width: 768px) 100vw, 40vw"
                 style={{ objectPosition: imagenes.retrato.foco }}
-                className="object-cover grayscale"
+                // A color, sin el filtro de blanco y negro: es el único
+                // retrato grande del sitio y es de una persona.
+                className="object-cover"
                 priority
               />
             </div>
@@ -88,13 +90,38 @@ export default async function SobreMi({ idioma }: { idioma: Idioma }) {
             >
               {perfil.linkedinLabel} <span aria-hidden>↗</span>
             </a>
-            <Link
-              href={`${ruta("cv", idioma)}?imprimir=1`}
-              className="subrayado text-[0.9375rem] text-ink-300"
-            >
-              {t.perfil.descargarCv} <span aria-hidden>↗</span>
-            </Link>
           </div>
+
+          {/* El CV sale de la fila y se convierte en botón.
+              Estaba compuesto como un tercer enlace subrayado, con el
+              mismo peso que el correo y el LinkedIn — pero esos dos son
+              datos de contacto y este es la acción que se espera de la
+              página. Con el aspecto del primario del sitio (el de
+              «Enviar mensaje») se distingue de un vistazo de lo que hay
+              a su lado. */}
+          <Link
+            href={`${ruta("cv", idioma)}?imprimir=1`}
+            data-cursor={t.perfil.descargarCv}
+            className="group mt-8 inline-flex items-center gap-3 bg-accent px-7 py-3.5 text-[0.875rem] font-medium text-accent-contra transition hover:opacity-85"
+          >
+            {t.perfil.descargarCv}
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 14 14"
+              fill="none"
+              aria-hidden
+              className="transition-transform duration-500 group-hover:translate-x-1"
+            >
+              <path
+                d="M2 7h10M8 3l4 4-4 4"
+                stroke="currentColor"
+                strokeWidth="1.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </Link>
         </Reveal>
       </section>
 
